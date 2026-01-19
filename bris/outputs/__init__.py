@@ -87,7 +87,7 @@ class Output:
     """This class writes output for a specific part of the domain"""
 
     def __init__(
-        self, predict_metadata: PredictMetadata, extra_variables: Optional[list] = None
+        self, predict_metadata: PredictMetadata, extra_variables: Optional[list] = None, forcings: Optional[list] = None
     ):
         """Creates an object of type name with config
 
@@ -96,14 +96,24 @@ class Output:
         """
         if extra_variables is None:
             extra_variables = []
+        if forcings is None:
+            forcings = []
 
         predict_metadata = copy.deepcopy(predict_metadata)
         for name in extra_variables:
             if name not in predict_metadata.variables:
                 predict_metadata.variables += [name]
 
+        if forcings is not None:
+            for name in forcings:
+                if name not in predict_metadata.variables:
+                    predict_metadata.variables += [name]
+
         self.pm = predict_metadata
         self.extra_variables = extra_variables
+        self.forcings = forcings
+        LOGGER.info(f"outputs.Output extra_variables: {self.extra_variables}, forcings: {self.forcings}, pm.variables: {self.pm.variables}")
+
 
     def add_forecast(self, times: list, ensemble_member: int, pred: np.ndarray):
         """Registers a forecast from a single ensemble member in the output
@@ -113,7 +123,7 @@ class Output:
             ensemble_member: Which ensemble member is this?
             pred: 3D numpy array with dimensions (leadtime, location, variable)
         """
-
+        LOGGER.info(f"outputs.add_forecast called {self.pm.variables}, pred shape: {pred.shape}")
         # Append extra variables to prediction
         for name in self.extra_variables:
             if name not in self.pm.variables:
@@ -121,19 +131,20 @@ class Output:
 
         # only do this once. For multiple members, intermediate calls this several times
         t0 = time.perf_counter()
-        if pred.shape[2] != len(self.pm.variables):
+        if pred.shape[2] < len(self.pm.variables):
             # Append extra variables to prediction
-            extra_pred = []
-            for name in self.extra_variables:
-                if name == "ws":
-                    Ix = self.pm.variables.index("10u")
-                    Iy = self.pm.variables.index("10v")
-                    curr = np.sqrt(pred[..., [Ix]] ** 2 + pred[..., [Iy]] ** 2)
-                    extra_pred += [curr]
-                else:
-                    raise ValueError(f"No recipe to compute {name}")
+            if self.extra_variables is not None:
+                extra_pred = []
+                for name in self.extra_variables:
+                    if name == "ws":
+                        Ix = self.pm.variables.index("10u")
+                        Iy = self.pm.variables.index("10v")
+                        curr = np.sqrt(pred[..., [Ix]] ** 2 + pred[..., [Iy]] ** 2)
+                        extra_pred += [curr]
+                    else:
+                        raise ValueError(f"No recipe to compute {name}")
+                pred = np.concatenate([pred] + extra_pred, axis=2)
 
-            pred = np.concatenate([pred] + extra_pred, axis=2)
         LOGGER.debug(
             f"outputs.add_forecast Calculate ws in {time.perf_counter() - t0:.1f}s"
         )

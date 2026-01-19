@@ -15,6 +15,7 @@ from bris.conventions.variable_list import VariableList
 from bris.outputs import Output
 from bris.outputs.intermediate import Intermediate
 from bris.predict_metadata import PredictMetadata
+from bris.utils import LOGGER
 
 
 class Netcdf(Output):
@@ -49,6 +50,7 @@ class Netcdf(Output):
         global_attributes=None,
         remove_intermediate=True,
         compression=False,
+        forcings: list[str] | None = None,
     ):
         """
         Args:
@@ -58,7 +60,7 @@ class Netcdf(Output):
             global_attributes (dict): Write these global attributes in the output file
             compression (bool): If true, write compressed output files
         """
-        super().__init__(predict_metadata, extra_variables)
+        super().__init__(predict_metadata, extra_variables, forcings)
 
         self.filename_pattern = filename_pattern
         if variables is None:
@@ -73,6 +75,10 @@ class Netcdf(Output):
         else:
             self.accumulated_variables = [v + "_acc" for v in accumulated_variables]
             self.extract_variables += self.accumulated_variables
+        
+        if forcings is not None:
+            self.extract_variables += forcings
+        self.forcings = forcings
 
         self.intermediate = None
         if self.pm.num_members > 1:
@@ -80,6 +86,7 @@ class Netcdf(Output):
                 predict_metadata,
                 workdir,
                 extra_variables,
+                forcings
             )
         self.remove_intermediate = remove_intermediate
         self.variable_list = VariableList(self.extract_variables)
@@ -497,6 +504,8 @@ class Netcdf(Output):
             t1 = pytime.perf_counter()
             if variable in self.accumulated_variables:
                 variable_index = self.pm.variables.index(variable.removesuffix("_acc"))
+            elif variable in self.forcings:
+                variable_index = self.pm.variables.index(variable)
             else:
                 variable_index = self.pm.variables.index(variable)
 

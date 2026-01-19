@@ -55,6 +55,7 @@ class BrisPredictor(BasePredictor):
         required_variables: dict,
         release_cache: bool = False,
         fcstep_const: bool = False,
+        shuffle_var: str | None = None,
         **kwargs,
     ) -> None:
         """
@@ -85,6 +86,10 @@ class BrisPredictor(BasePredictor):
 
             fcstep_const
                 For inference on non-rollout trained ensemble models. Keep fcstep constant at 0 as in training if True.
+            
+            shuffle_var
+                Variable name to shuffle spatially before inference. Useful for testing model sensitivity to
+                spatial arrangement of input data. 
         """
 
         super().__init__(*args, checkpoints=checkpoints, **kwargs)
@@ -99,7 +104,8 @@ class BrisPredictor(BasePredictor):
         self.latitudes = datamodule.data_reader.latitudes
         self.longitudes = datamodule.data_reader.longitudes
         self.fcstep_const = fcstep_const
-
+        
+        self.shuffle_var = shuffle_var
         # Backwards compatibility with older anemoi-models versions,
         # for example legendary-gnome.
         if hasattr(self.data_indices, "internal_model") and hasattr(
@@ -252,6 +258,24 @@ class BrisPredictor(BasePredictor):
             ..., self.indices["static_forcings_dataset"]
         ]
 
+        LOGGER.debug(f"self.internal_data.input: {self.internal_data.input}")
+        LOGGER.debug(f"self.internal_data.input.forcings: {self.internal_data.input.forcing}")
+        LOGGER.debug(f"self.internal_data.input.name_to_index: {self.internal_data.input.name_to_index}")
+        LOGGER.debug(f"indices.static_forcings_dataset: {self.indices['static_forcings_dataset']}")
+        LOGGER.debug(f"indices.static_forcings_input: {self.indices['static_forcings_input']}")
+        LOGGER.debug(f"indices.prognostic_dataset: {self.indices['prognostic_dataset']}")
+        LOGGER.debug(f"indices.prognostic_input: {self.indices['prognostic_input']}")
+        LOGGER.debug(f"forcing: {self.static_forcings}")
+        LOGGER.debug(f"data_input before dynamic forcings: {data_input.shape}")
+
+        shuffle_var = self.shuffle_var
+        if shuffle_var in self.internal_data.input.name_to_index and shuffle_var is not None:
+            idx = self.internal_data.input.name_to_index[shuffle_var]  # dataset index
+            LOGGER.info(f"Before shuffling {shuffle_var} (ind {idx}): {data_input[0, 0, 0, 0, idx].item()}")
+            shuffled_values = data_input[:, :, :, torch.randperm(data_input.shape[-2]), idx]
+            data_input[:, :, :, :, idx] = shuffled_values
+            LOGGER.info(f"After shuffling {shuffle_var}: {data_input[0, 0, 0, 0, idx].item()}")
+
         # Calculate dynamic forcings
         for time_index in range(multistep):
             toi = time - (multistep - 1 - time_index) * self.timestep
@@ -282,6 +306,7 @@ class BrisPredictor(BasePredictor):
         ].cpu()
 
         # Possibly have to extend this to handle imputer, see _step in forecaster.
+        input_state = data_input.cpu().to(torch.float32).numpy()
         data_input = self.model.pre_processors(data_input, in_place=True)
         x = data_input[..., self.internal_data.input.full]
 
@@ -313,6 +338,7 @@ class BrisPredictor(BasePredictor):
             "group_rank": self.model_comm_group_rank,
             "ensemble_member": self.member_id
             + self.num_members_in_parallel * (self.batch_info[time] - 1),
+            "input_state": (self.internal_data._name_to_index, input_state[:, -1, :, :]),
         }
 
     def allgather_batch(self, batch: torch.Tensor) -> torch.Tensor:
