@@ -504,8 +504,8 @@ class Netcdf(Output):
             t1 = pytime.perf_counter()
             if variable in self.accumulated_variables:
                 variable_index = self.pm.variables.index(variable.removesuffix("_acc"))
-            elif variable in self.forcings:
-                variable_index = self.pm.variables.index(variable)
+            #elif variable in self.forcings:
+            #    variable_index = self.pm.variables.index(variable)
             else:
                 variable_index = self.pm.variables.index(variable)
 

@@ -258,15 +258,15 @@ class BrisPredictor(BasePredictor):
             ..., self.indices["static_forcings_dataset"]
         ]
 
-        LOGGER.debug(f"self.internal_data.input: {self.internal_data.input}")
-        LOGGER.debug(f"self.internal_data.input.forcings: {self.internal_data.input.forcing}")
-        LOGGER.debug(f"self.internal_data.input.name_to_index: {self.internal_data.input.name_to_index}")
-        LOGGER.debug(f"indices.static_forcings_dataset: {self.indices['static_forcings_dataset']}")
-        LOGGER.debug(f"indices.static_forcings_input: {self.indices['static_forcings_input']}")
-        LOGGER.debug(f"indices.prognostic_dataset: {self.indices['prognostic_dataset']}")
-        LOGGER.debug(f"indices.prognostic_input: {self.indices['prognostic_input']}")
-        LOGGER.debug(f"forcing: {self.static_forcings}")
-        LOGGER.debug(f"data_input before dynamic forcings: {data_input.shape}")
+        LOGGER.info(f"self.internal_data.input: {self.internal_data.input}")
+        LOGGER.info(f"self.internal_data.input.forcings: {self.internal_data.input.forcing}")
+        LOGGER.info(f"self.internal_data.input.name_to_index: {self.internal_data.input.name_to_index}")
+        LOGGER.info(f"indices.static_forcings_dataset: {self.indices['static_forcings_dataset']}")
+        LOGGER.info(f"indices.static_forcings_input: {self.indices['static_forcings_input']}")
+        LOGGER.info(f"indices.prognostic_dataset: {self.indices['prognostic_dataset']}")
+        LOGGER.info(f"indices.prognostic_input: {self.indices['prognostic_input']}")
+        LOGGER.info(f"forcing: {self.static_forcings}")
+        LOGGER.info(f"data_input before dynamic forcings: {data_input.shape}")
 
         shuffle_var = self.shuffle_var
         if shuffle_var in self.internal_data.input.name_to_index and shuffle_var is not None:

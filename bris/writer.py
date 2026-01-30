@@ -81,6 +81,11 @@ class CustomWriter(BasePredictionWriter):
                     output_dict["start_gridpoint"] : output_dict["end_gridpoint"],
                     :,
                 ]
+                initial_state = initial_state[
+                    ...,
+                    output_dict["start_gridpoint"] : output_dict["end_gridpoint"],
+                    :,
+                ]
 
                 for output in output_dict["outputs"]:
                     if output.forcings is not None:

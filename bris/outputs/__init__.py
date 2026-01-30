@@ -99,15 +99,18 @@ class Output:
         if forcings is None:
             forcings = []
 
+
         predict_metadata = copy.deepcopy(predict_metadata)
-        for name in extra_variables:
-            if name not in predict_metadata.variables:
-                predict_metadata.variables += [name]
 
         if forcings is not None:
             for name in forcings:
                 if name not in predict_metadata.variables:
                     predict_metadata.variables += [name]
+
+        for name in extra_variables:
+            if name not in predict_metadata.variables:
+                predict_metadata.variables += [name]
+
 
         self.pm = predict_metadata
         self.extra_variables = extra_variables
