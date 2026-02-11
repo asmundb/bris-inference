@@ -87,7 +87,7 @@ class Output:
     """This class writes output for a specific part of the domain"""
 
     def __init__(
-        self, predict_metadata: PredictMetadata, extra_variables: Optional[list] = None
+        self, predict_metadata: PredictMetadata, extra_variables: Optional[list] = None, forcings: Optional[list] = None
     ):
         """Creates an object of type name with config
 
@@ -96,14 +96,24 @@ class Output:
         """
         if extra_variables is None:
             extra_variables = []
+        if forcings is None:
+            forcings = []
+
 
         predict_metadata = copy.deepcopy(predict_metadata)
+
+        if forcings is not None:
+            for name in forcings:
+                if name not in predict_metadata.variables:
+                    predict_metadata.variables += [name]
+
         for name in extra_variables:
             if name not in predict_metadata.variables:
                 predict_metadata.variables += [name]
 
         self.pm = predict_metadata
         self.extra_variables = extra_variables
+        self.forcings = forcings
 
     def add_forecast(self, times: list, ensemble_member: int, pred: np.ndarray):
         """Registers a forecast from a single ensemble member in the output

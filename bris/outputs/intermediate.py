@@ -21,8 +21,9 @@ class Intermediate(Output):
         predict_metadata: PredictMetadata,
         workdir: str,
         extra_variables: Optional[list] = None,
+        forcings: Optional[list] = None,
     ) -> None:
-        super().__init__(predict_metadata, extra_variables)
+        super().__init__(predict_metadata, extra_variables, forcings)
         self.workdir = workdir
 
     def _add_forecast(self, times, ensemble_member, pred) -> None:

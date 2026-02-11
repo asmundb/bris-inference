@@ -71,7 +71,15 @@ class CustomWriter(BasePredictionWriter):
         ensemble_member = prediction["ensemble_member"]
         if prediction["group_rank"] == 0:
             for output_dict in self.outputs:
-                pred = prediction["pred"][output_dict["decoder_name"]]
+                ds = output_dict["decoder_name"]
+                pred = prediction["pred"][ds]
+                if "input_states" in prediction:
+                    if ds in prediction["input_states"]:
+                        name_to_index, initial_state = prediction["input_states"][ds]
+                        LOGGER.info(f"CustomWriter received initial_state: {name_to_index}, {initial_state.shape}")
+                else:
+                    initial_state = None
+                    name_to_index = None
                 assert pred.shape[0] == 1, "Batchsize (per dataparallel) should be 1"
                 pred = np.squeeze(pred, axis=0)
                 pred = pred[
@@ -79,8 +87,22 @@ class CustomWriter(BasePredictionWriter):
                     output_dict["start_gridpoint"] : output_dict["end_gridpoint"],
                     :,
                 ]
-
+                
+                
+                if initial_state is not None:
+                    initial_state = initial_state[
+                        ...,
+                        output_dict["start_gridpoint"] : output_dict["end_gridpoint"],
+                        :,
+                    ]
+                
                 for output in output_dict["outputs"]:
+                    if output.forcings is not None and name_to_index is not None:
+                        LOGGER.info(f"CustomWriter passing forcings to output: {output.forcings}")
+                        forcing_indices = [name_to_index[name] for name in output.forcings]
+                        forcings = initial_state[..., forcing_indices]
+                        forcings = np.repeat(np.squeeze(forcings, axis=0), pred.shape[0], axis=0)
+                        pred = np.concatenate([pred, forcings], axis=2)
                     if self.process_list is not None:
                         self.process_list.append(
                             self.pool.submit(
