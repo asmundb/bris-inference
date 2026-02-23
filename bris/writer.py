@@ -76,7 +76,7 @@ class CustomWriter(BasePredictionWriter):
                 if "input_states" in prediction:
                     if ds in prediction["input_states"]:
                         name_to_index, initial_state = prediction["input_states"][ds]
-                        LOGGER.info(f"CustomWriter received initial_state: {name_to_index}, {initial_state.shape}")
+                        #LOGGER.info(f"CustomWriter received initial_state: {name_to_index}, {initial_state.shape}")
                 else:
                     initial_state = None
                     name_to_index = None
@@ -98,7 +98,7 @@ class CustomWriter(BasePredictionWriter):
                 
                 for output in output_dict["outputs"]:
                     if output.forcings is not None and name_to_index is not None:
-                        LOGGER.info(f"CustomWriter passing forcings to output: {output.forcings}")
+                        #LOGGER.info(f"CustomWriter passing forcings to output: {output.forcings}")
                         forcing_indices = [name_to_index[name] for name in output.forcings]
                         forcings = initial_state[..., forcing_indices]
                         forcings = np.repeat(np.squeeze(forcings, axis=0), pred.shape[0], axis=0)

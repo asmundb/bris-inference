@@ -49,7 +49,7 @@ class Netcdf(Output):
         global_attributes=None,
         remove_intermediate=True,
         compression=False,
-        forcings: list[str] | None = None,
+        forcings: list | None = None,
     ):
         """
         Args:
@@ -60,7 +60,7 @@ class Netcdf(Output):
             compression (bool): If true, write compressed output files
         """
         super().__init__(predict_metadata, extra_variables, forcings)
-
+        
         self.filename_pattern = filename_pattern
         if variables is None:
             self.extract_variables = list(predict_metadata.variables)
@@ -74,8 +74,10 @@ class Netcdf(Output):
         else:
             self.accumulated_variables = [v + "_acc" for v in accumulated_variables]
             self.extract_variables += self.accumulated_variables
-        
+
         if forcings is not None:
+            #if isinstance(forcings, str):
+            #    forcings = [forcings] 
             self.extract_variables += forcings
         self.forcings = forcings
 
